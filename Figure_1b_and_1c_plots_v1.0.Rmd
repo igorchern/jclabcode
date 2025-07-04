@@ -1,0 +1,96 @@
+---
+title: "Moffitt et al. paper analysis"
+date: "07 July 2025"
+output:
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = F, warning = F)
+```
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.height=10, fig.width=10}
+library(tidyverse)
+library(ggthemes)
+library(ggpubr)
+
+
+extract_all_comparisons <- function(.tbl) {
+  .tbl %>%
+    dplyr::select(.data$group1, .data$group2) %>%
+    purrr::transpose() %>%
+    purrr::modify_depth(1, unlist)
+}
+
+get_violin_plots <- function( exp_tab, each_gene, s_sheet, factor_name, col_names){
+  
+  sel_gene_tab <- exp_tab %>% 
+    filter( gene_name == each_gene) %>% 
+    column_to_rownames( var='gene_name') %>% 
+    t() %>% 
+    as.data.frame() %>% 
+    rownames_to_column( var='SampleName') %>% 
+    rename( expr=2)
+  
+  sel_gene_tab_with_meta <- left_join( sel_gene_tab, s_sheet, by='SampleName') %>% 
+    mutate(tissue_type = str_replace(tissue_type, 'normal', 'Normal')) %>% 
+    mutate( tissue_type = factor(tissue_type, levels = c("CellLine", "Normal", "Primary", "Metastasis"))) 
+  
+  if( factor_name == "tissue_type"){
+    groups = levels(sel_gene_tab_with_meta$tissue_type)
+  }
+  
+  stat_tests = compare_means(expr ~ tissue_type, data = sel_gene_tab_with_meta)
+  my_comparisons = extract_all_comparisons(stat_tests)
+  
+  main_title <- each_gene
+  
+  p2 <- ggviolin(sel_gene_tab_with_meta, 
+                 x = "tissue_type", 
+                 y = "expr", 
+                 fill = "tissue_type",
+                 palette = col_names,
+                 add = "boxplot", add.params = list(fill = "white"))+
+    stat_compare_means(comparisons = my_comparisons) +
+    labs(title = main_title) +
+    theme_base() +
+    theme(plot.title = element_text(hjust = 0.5),
+        legend.position = "none") 
+  
+  print(p2)
+  
+}
+
+
+s_sheet <- read.csv( file='samplesheet_v1.0.csv', stringsAsFactors = F) %>% 
+  mutate( tissue_type=ifelse(tissue_type=="  ", 'CellLine', tissue_type))
+
+exp_tab <- read.csv( file = 'E-GEOD-71729_gene_level_normalised_exp_mat_v1.0.csv', stringsAsFactors = F)
+
+genes_of_interest <- c(  "HNF4G", "HNF4A")
+
+HNF4G_colours <- c("#11b906", "#11f05b", "#11f08c", "#c5fdc1")
+HNF4A_colours <- c("#050990", "#070ee3", "#464bf9", "#989bfc")
+
+
+for( each_gene in genes_of_interest){
+  
+  if (each_gene == "HNF4G"){
+    col_names = HNF4G_colours
+  }
+  if (each_gene == "HNF4A"){
+    col_names = HNF4A_colours
+  }
+  
+  get_violin_plots(exp_tab = exp_tab, 
+                   s_sheet = s_sheet, 
+                   each_gene = each_gene, 
+                   factor_name = 'tissue_type',
+                   col_names=col_names)
+  
+}
+
+```
+
+
