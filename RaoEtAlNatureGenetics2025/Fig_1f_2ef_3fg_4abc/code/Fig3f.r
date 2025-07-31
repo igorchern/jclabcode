@@ -1,7 +1,7 @@
  
 ########################################################################################
 #
-# Couturier, D.-L., Insolia, I. and Guerrier S. [20250730]
+# Couturier, D.-L., Insolia, L. and Guerrier, S., 20250730
 # Code related to FIGURE 3f of Rao S. et al (2025), 
 # "Transcription Factor Switching Drives Subtype Specific Pancreatic Cancer"
 # 
